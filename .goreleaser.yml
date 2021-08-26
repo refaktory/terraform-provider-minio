@@ -3,7 +3,6 @@
 before:
   hooks:
     - go mod tidy
-    - go fmt ./...
 builds:
 - env:
     # goreleaser does not work with CGO, it could also complicate
