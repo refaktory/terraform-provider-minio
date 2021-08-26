@@ -16,6 +16,7 @@ on:
       - 'v*'
 jobs:
   goreleaser:
+    environment: deploy
     runs-on: ubuntu-latest
     steps:
       -
@@ -36,7 +37,8 @@ jobs:
         env:
           # These secrets will need to be configured for the repository:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
-          PASSPHRASE: ${{ secrets.PASSPHRASE }}
+          # PASSPHRASE: ${{ secrets.PASSPHRASE }}
+          PASSPHRASE: ""
       -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2.7.0
