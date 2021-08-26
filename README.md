@@ -18,6 +18,7 @@ self-hosted object storage server that is compatible with S3.
   * [ ] Assign groups
 - [x] Canned policies
 - [ ] Groups
+  
   Group management is not yet provided by the official API sdk - see https://github.com/minio/madmin-go/issues/25
 - [ ] Objects
   Support for creating files with a given content.
@@ -26,7 +27,7 @@ self-hosted object storage server that is compatible with S3.
 
 ### Configure Terraform to use the locally built provider
 
-First, add this configuration into `$HOME/.terraformrc`:
+Add this configuration into `$HOME/.terraformrc`:
 
 (**Notice** the trailing `/bin` in the path)
 

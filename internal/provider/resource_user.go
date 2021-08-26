@@ -74,7 +74,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 	secretKey := d.Get(keySecretKey).(string)
 	policies := dataGetUserPolicies(d)
 
-	log.Println("[DEBUG] Creating minio user: '%s'", accessKey)
+	log.Printf("[DEBUG] Creating minio user: '%s'\n", accessKey)
 	if err := client.AddUser(ctx, accessKey, secretKey); err != nil {
 		return diag.FromErr(err)
 	}
