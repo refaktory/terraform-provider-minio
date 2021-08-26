@@ -13,10 +13,14 @@ default: install
 format:
 	go fmt ./...
 
+build-documentation:
+	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+	go generate
+
 build:
 	go build -o bin/${BINARY}_${VERSION}_${OS_ARCH}
 
-release:
+release: build-documentation
 	GOOS=darwin GOARCH=amd64 go build -o ./bin/${BINARY}_${VERSION}_darwin_amd64
 	GOOS=freebsd GOARCH=386 go build -o ./bin/${BINARY}_${VERSION}_freebsd_386
 	GOOS=freebsd GOARCH=amd64 go build -o ./bin/${BINARY}_${VERSION}_freebsd_amd64
