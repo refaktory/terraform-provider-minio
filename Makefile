@@ -10,12 +10,15 @@ OS_ARCH=linux_amd64
 
 default: install
 
-format:
-	go fmt ./...
+fmt:
+	go fmt internal/...
+	go fmt main.go
 
 lint:
-	golint ./...
-	go vet ./...
+	golint main.go 
+	golint internal/...
+	go vet main.go 
+	go vet ./internal/...
 
 build-documentation:
 	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
