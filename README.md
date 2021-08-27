@@ -57,7 +57,7 @@ Add this configuration into `$HOME/.terraformrc`:
 ```
 provider_installation {
   dev_overrides {
-    "foundational-solutions/minio" = "/PATH/TO/LOCAL/REPO/bin"
+    "foundational-dev/minio" = "/PATH/TO/LOCAL/REPO/bin"
   }
 
   direct {}
