@@ -24,6 +24,8 @@ build-documentation:
 	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 	go generate
 
+prepare-release: fmt lint build build-documentation
+
 build:
 	go build -o bin/${BINARY}_${VERSION}_${OS_ARCH}
 
