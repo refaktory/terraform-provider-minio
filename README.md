@@ -46,6 +46,7 @@ on the registry for usage documenation.
 
 Additional examples are available in the `./examples` directory.
 
+
 ## Local Development
 
 ### Configure Terraform to use the locally built provider
@@ -76,3 +77,7 @@ Build the provider with `make build`
 
 * Use the provider
   `cd ./examples && terraform apply`
+
+## About
+
+Developed by [foundational](https://foundational.cc).
