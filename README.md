@@ -5,6 +5,8 @@ self-hosted object storage server that is compatible with S3.
 
 ## Features
 
+### Resources
+
 - [ ] Buckets
   - [x] Create/delete
   - [x] Versioning config
@@ -16,12 +18,20 @@ self-hosted object storage server that is compatible with S3.
   - [x] Create/delete
   - [x] Assign policies
   - [x] Assign groups
+- [ ] Serviceaccounts
 - [x] Canned policies
 - [x] Groups
   - [x] Create/delete
   - [x] Assign policies
 - [ ] Objects
   - [  ] Create files with a given content
+
+### Datasources
+
+- [x] Bucket
+- [x] Canned policy
+- [x] Group
+- [x] User
 
 ## Local Development
 

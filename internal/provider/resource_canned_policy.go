@@ -15,7 +15,27 @@ const (
 	keyPolicyPolicy = "policy"
 )
 
+func schemaCannedPolicy() objectSchema {
+	return map[string]*schema.Schema{
+		keyPolicyName: &schema.Schema{
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "The name for this policy. This is also the unique ID.",
+			ForceNew:    true,
+		},
+		keyPolicyPolicy: &schema.Schema{
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "The policy definition as a map - will be encoded as JSON. See https://docs.min.io/docs/minio-multi-user-quickstart-guide.html for an example.",
+			// NOTE: apparently the API does not support changing the policy config,
+			// so we must re-create.
+			ForceNew: true,
+		},
+	}
+}
+
 func resourceCannedPolicy() *schema.Resource {
+
 	return &schema.Resource{
 		CreateContext: resourceCannedPolicyCreate,
 		ReadContext:   resourceCannedPolicyRead,
@@ -24,22 +44,17 @@ func resourceCannedPolicy() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Schema: map[string]*schema.Schema{
-			keyPolicyName: &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name for this policy. This is also the unique ID.",
-				ForceNew:    true,
-			},
-			keyPolicyPolicy: &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The policy definition as a map - will be encoded as JSON. See https://docs.min.io/docs/minio-multi-user-quickstart-guide.html for an example.",
-				// NOTE: apparently the API does not support changing the policy config,
-				// so we must re-create.
-				ForceNew: true,
-			},
-		},
+		Schema: schemaCannedPolicy(),
+	}
+}
+
+func datasourceCannedPolicy() *schema.Resource {
+	s := schemaCannedPolicy()
+	s[keyPolicyPolicy].Required = false
+	s[keyPolicyPolicy].Optional = true
+	return &schema.Resource{
+		ReadContext: resourceCannedPolicyRead,
+		Schema:      s,
 	}
 }
 
@@ -66,10 +81,16 @@ func resourceCannedPolicyRead(ctx context.Context, d *schema.ResourceData, m int
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	name := d.Id()
+	name := d.Get(keyPolicyName).(string)
 	client := m.(*minioContext).admin
 
-	d.Set(keyPolicyName, name)
+    if d.Id() == "" {
+        d.SetId(name)
+    }
+
+	if err := d.Set(keyPolicyName, name); err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Compare policy content.
 	// This must be done because the policy is specified as a json STRING, and the
@@ -90,13 +111,17 @@ func resourceCannedPolicyRead(ctx context.Context, d *schema.ResourceData, m int
 	}
 
 	originalPolicyJSON := []byte(d.Get(keyPolicyPolicy).(string))
-	var originalPolicy map[string]interface{}
-	if err := json.Unmarshal(originalPolicyJSON, &originalPolicy); err != nil {
-		return diag.Errorf("Could not decode JSON policy: %e", err)
-	}
+	if len(originalPolicyJSON) != 0 {
+		var originalPolicy map[string]interface{}
+		if err := json.Unmarshal(originalPolicyJSON, &originalPolicy); err != nil {
+			return diag.Errorf("Could not decode JSON policy: %e", err)
+		}
 
-	if !reflect.DeepEqual(currentPolicy, originalPolicy) {
-		d.Set(keyPolicyPolicy, string(currentPolicyJSON))
+		if !reflect.DeepEqual(currentPolicy, originalPolicy) {
+			if err := d.Set(keyPolicyPolicy, string(currentPolicyJSON)); err != nil {
+				return diag.FromErr(err)
+			}
+		}
 	}
 
 	return diags

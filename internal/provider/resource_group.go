@@ -21,6 +21,25 @@ const (
 	keyGroupPolicies = "policies"
 )
 
+func schemaGroup() objectSchema {
+	return map[string]*schema.Schema{
+		keyGroupName: &schema.Schema{
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "The name for the group.",
+			ForceNew:    true,
+		},
+		keyGroupPolicies: &schema.Schema{
+			Type: schema.TypeList,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+			Optional:    true,
+			Description: "The policies assigned to this group.",
+		},
+	}
+}
+
 func resourceGroup() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceGroupCreate,
@@ -30,22 +49,14 @@ func resourceGroup() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Schema: map[string]*schema.Schema{
-			keyGroupName: &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name for the group.",
-				ForceNew:    true,
-			},
-			keyGroupPolicies: &schema.Schema{
-				Type: schema.TypeList,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Optional:    true,
-				Description: "The policies assigned to this group.",
-			},
-		},
+		Schema: schemaGroup(),
+	}
+}
+
+func datasourceGroup() *schema.Resource {
+	return &schema.Resource{
+		ReadContext: resourceGroupRead,
+		Schema: schemaGroup(),
 	}
 }
 
@@ -87,7 +98,9 @@ func resourceGroupCreate(ctx context.Context, d *schema.ResourceData, m interfac
 				Summary:       "Could not set policy for user: " + err.Error(),
 				AttributePath: cty.GetAttrPath(keyGroupPolicies),
 			})
-			d.Set(keyGroupPolicies, nil)
+			if err := d.Set(keyGroupPolicies, nil); err != nil {
+				return diag.FromErr(err)
+			}
 		}
 	}
 
@@ -99,15 +112,21 @@ func resourceGroupRead(ctx context.Context, d *schema.ResourceData, m interface{
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	groupName := d.Id()
+	groupName := d.Get(keyGroupName).(string)
+    if d.Id() == "" {
+        d.SetId(groupName)
+    }
 	client := m.(*minioContext).admin
+
 
 	info, err := client.GetGroupDescription(ctx, groupName)
 	if err != nil {
 		return diag.Errorf("Could not load group %s: %e", groupName, err)
 	}
 
-	d.Set(keyGroupName, groupName)
+	if err := d.Set(keyGroupName, groupName); err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Policies.
 	var policies []interface{}
@@ -116,7 +135,9 @@ func resourceGroupRead(ctx context.Context, d *schema.ResourceData, m interface{
 			policies = append(policies, &part)
 		}
 	}
-	d.Set(keyGroupPolicies, policies)
+	if err := d.Set(keyGroupPolicies, policies); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return diags
 }

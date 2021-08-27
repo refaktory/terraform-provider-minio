@@ -32,6 +32,8 @@ func init() {
 	// }
 }
 
+type objectSchema = map[string]*schema.Schema
+
 // NewMinioProvider creates a new provider schema.
 func NewMinioProvider() *schema.Provider {
 	return &schema.Provider{
@@ -66,7 +68,12 @@ func NewMinioProvider() *schema.Provider {
 			"minio_canned_policy": resourceCannedPolicy(),
 			"minio_group":         resourceGroup(),
 		},
-		DataSourcesMap: map[string]*schema.Resource{},
+        DataSourcesMap: map[string]*schema.Resource{
+            "minio_bucket": datasourceBucket(),
+            "minio_user": datasourceUser(),
+            "minio_canned_policy": datasourceCannedPolicy(),
+			"minio_group":         datasourceGroup(),
+        },
 	}
 }
 

@@ -17,6 +17,23 @@ const (
 	keyBucketVersioningEnabled = "versioning_enabled"
 )
 
+func schemaBucket() objectSchema {
+	return map[string]*schema.Schema{
+		keyBucketName: &schema.Schema{
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "The name of the bucket. Can not be changed without recreating.",
+			ForceNew:    true,
+		},
+		keyBucketVersioningEnabled: &schema.Schema{
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Default:     false,
+			Description: "Enables versioning. Note: this is only available if the Minio server is run with erasure codes enabled. See https://docs.min.io/docs/minio-erasure-code-quickstart-guide",
+		},
+	}
+}
+
 func resourceBucket() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceBucketCreate,
@@ -26,20 +43,7 @@ func resourceBucket() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Schema: map[string]*schema.Schema{
-			keyBucketName: &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the bucket. Can not be changed without recreating.",
-				ForceNew:    true,
-			},
-			keyBucketVersioningEnabled: &schema.Schema{
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Default:     false,
-				Description: "Enables versioning. Note: this is only available if the Minio server is run with erasure codes enabled. See https://docs.min.io/docs/minio-erasure-code-quickstart-guide",
-			},
-		},
+		Schema: schemaBucket(),
 	}
 }
 
@@ -74,8 +78,12 @@ func resourceBucketRead(ctx context.Context, d *schema.ResourceData, m interface
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	name := d.Id()
+	name := d.Get(keyBucketName).(string)
 	client := m.(*minioContext).api
+
+    if d.Id() == "" {
+        d.SetId(name)
+    }
 
 	// Ensure that bucket exists.
 	flag, err := client.BucketExists(ctx, name)
@@ -85,7 +93,9 @@ func resourceBucketRead(ctx context.Context, d *schema.ResourceData, m interface
 	if !flag {
 		return diag.FromErr(errors.New("Bucket " + name + " does not exist"))
 	}
-	d.Set("name", name)
+    if err := d.Set(keyBucketName, name); err != nil {
+        return diag.FromErr(err)
+    }
 
 	// Check versioning.
 	versionConfig, err := client.GetBucketVersioning(ctx, name)
@@ -93,7 +103,9 @@ func resourceBucketRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 	versioningEnabled := versionConfig.Enabled()
-	d.Set(keyBucketVersioningEnabled, versioningEnabled)
+    if err := d.Set(keyBucketVersioningEnabled, versioningEnabled); err != nil {
+        return diag.FromErr(err)
+    }
 
 	return diags
 }

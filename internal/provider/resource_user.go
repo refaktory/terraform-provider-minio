@@ -24,6 +24,39 @@ const (
 	keyUserGroups   = "groups"
 )
 
+func schemaUser() objectSchema {
+	return map[string]*schema.Schema{
+		keyAccessKey: &schema.Schema{
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "The access key for the user. This is also the unique ID.",
+			ForceNew:    true,
+		},
+		keySecretKey: &schema.Schema{
+			Type:        schema.TypeString,
+			Required:    true,
+			Description: "The secret key for the user.",
+			Sensitive:   true,
+		},
+		keyUserPolicies: &schema.Schema{
+			Type: schema.TypeList,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+			Optional:    true,
+			Description: "The names of the canned policies valid for this user.",
+		},
+		keyUserGroups: &schema.Schema{
+			Type: schema.TypeList,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+			Optional:    true,
+			Description: "The names of the groups this user belongs to.",
+		},
+	}
+}
+
 func resourceUser() *schema.Resource {
 	return &schema.Resource{
 		CreateContext: resourceUserCreate,
@@ -33,36 +66,17 @@ func resourceUser() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Schema: map[string]*schema.Schema{
-			keyAccessKey: &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The access key for the user. This is also the unique ID.",
-				ForceNew:    true,
-			},
-			keySecretKey: &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The secret key for the user.",
-				Sensitive:   true,
-			},
-			keyUserPolicies: &schema.Schema{
-				Type: schema.TypeList,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Optional:    true,
-				Description: "The names of the canned policies valid for this user.",
-			},
-			keyUserGroups: &schema.Schema{
-				Type: schema.TypeList,
-				Elem: &schema.Schema{
-					Type: schema.TypeString,
-				},
-				Optional:    true,
-				Description: "The names of the groups this user belongs to.",
-			},
-		},
+		Schema: schemaUser(),
+	}
+}
+
+func datasourceUser() *schema.Resource {
+	s := schemaUser()
+	s[keySecretKey].Required = false
+	s[keySecretKey].Optional = true
+	return &schema.Resource{
+		ReadContext: resourceUserRead,
+		Schema:      s,
 	}
 }
 
@@ -162,7 +176,9 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 				Summary:       "Could not set policy for user: " + err.Error(),
 				AttributePath: cty.GetAttrPath(keyUserPolicies),
 			})
-			d.Set(keyUserPolicies, nil)
+            if err := d.Set(keyUserPolicies, nil); err != nil {
+                return diag.FromErr(err)
+            }
 		}
 	}
 	if len(groups) > 0 {
@@ -193,7 +209,9 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 				actuallyAddedGroups = append(actuallyAddedGroups, group)
 			}
 		}
-		d.Set(keyUserGroups, actuallyAddedGroups)
+        if err := d.Set(keyUserGroups, actuallyAddedGroups); err != nil {
+            return diag.FromErr(err)
+        }
 	}
 
 	d.SetId(accessKey)
@@ -204,8 +222,12 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
 
-	accessKey := d.Id()
+	accessKey := d.Get(keyAccessKey).(string)
 	client := m.(*minioContext).admin
+
+    if d.Id() == "" {
+        d.SetId(accessKey)
+    }
 
 	users, err := client.ListUsers(ctx)
 	if err != nil {
@@ -217,11 +239,17 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}
 		return diag.Errorf("User does not exist")
 	}
 
-	d.Set(keyAccessKey, accessKey)
+    if err := d.Set(keyAccessKey, accessKey); err != nil {
+        return diag.FromErr(err)
+    }
 
 	policies := strings.Split(user.PolicyName, ",")
-	d.Set(keyUserPolicies, policies)
-	d.Set(keyUserGroups, user.MemberOf)
+    if err := d.Set(keyUserPolicies, policies); err != nil {
+        return diag.FromErr(err)
+    }
+    if err := d.Set(keyUserGroups, user.MemberOf); err != nil {
+        return diag.FromErr(err)
+    }
 
 	// TODO: how to handle this? API seems to not return the key.
 	// d.Set(KEY_SECRET_KEY, user.SecretKey)
@@ -277,7 +305,9 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 				IsRemove: false,
 			})
 			if err != nil {
-				d.Set(keyUserGroups, old)
+                if err := d.Set(keyUserGroups, old); err != nil {
+                    return diag.FromErr(err)
+                }
 				return []diag.Diagnostic{diag.Diagnostic{
 					Severity:      diag.Error,
 					AttributePath: cty.GetAttrPath(keyUserGroups),
@@ -294,7 +324,9 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 				IsRemove: true,
 			})
 			if err != nil {
-				d.Set(keyUserGroups, old)
+                if err := d.Set(keyUserGroups, old); err != nil {
+                    return diag.FromErr(err)
+                }
 				return []diag.Diagnostic{diag.Diagnostic{
 					Severity:      diag.Error,
 					AttributePath: cty.GetAttrPath(keyUserGroups),
