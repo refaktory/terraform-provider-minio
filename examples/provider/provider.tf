@@ -2,7 +2,7 @@ terraform {
   required_providers {
     minio = {
       # ATTENTION: use the current version here!
-      version = "0.1.0-alpha4"
+      version = "0.1.0-alpha5"
       source  = "foundational-solutions/minio"
     }
   }
