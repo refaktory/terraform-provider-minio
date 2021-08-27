@@ -1,6 +1,6 @@
 TEST?=$$(go list ./... | grep -v 'vendor')
 HOSTNAME=hashicorp.com
-NAMESPACE=foundational
+NAMESPACE=foundational-solutions
 NAME=minio
 BINARY=terraform-provider-${NAME}
 VERSION=0.1
@@ -12,6 +12,10 @@ default: install
 
 format:
 	go fmt ./...
+
+lint:
+	golint ./...
+	go vet ./...
 
 build-documentation:
 	go get github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs

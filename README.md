@@ -6,22 +6,22 @@ self-hosted object storage server that is compatible with S3.
 ## Features
 
 - [ ] Buckets
-  * [x] Create/delete
-  * [x] Versioning config
-  * [ ] Encryption config
-  * [ ] Replication config
-  * [ ] Lifecycle config
-  * [ ] Access rules
-- [ ] Users
-  * [x] Create/delete
-  * [x] Assign policies
-  * [ ] Assign groups
+  - [x] Create/delete
+  - [x] Versioning config
+  - [ ] Encryption config
+  - [ ] Replication config
+  - [ ] Lifecycle config
+  - [ ] Access rules
+- [x] Users
+  - [x] Create/delete
+  - [x] Assign policies
+  - [x] Assign groups
 - [x] Canned policies
-- [ ] Groups
-  
-  Group management is not yet provided by the official API sdk - see https://github.com/minio/madmin-go/issues/25
+- [x] Groups
+  - [x] Create/delete
+  - [x] Assign policies
 - [ ] Objects
-  Support for creating files with a given content.
+  - [  ] Create files with a given content
 
 ## Local Development
 

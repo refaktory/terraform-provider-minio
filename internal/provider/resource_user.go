@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 
@@ -20,6 +21,7 @@ const (
 	keyAccessKey    = "access_key"
 	keySecretKey    = "secret_key"
 	keyUserPolicies = "policies"
+	keyUserGroups   = "groups"
 )
 
 func resourceUser() *schema.Resource {
@@ -50,19 +52,87 @@ func resourceUser() *schema.Resource {
 					Type: schema.TypeString,
 				},
 				Optional:    true,
-				Description: "The name of the canned policy valid for this user.",
+				Description: "The names of the canned policies valid for this user.",
+			},
+			keyUserGroups: &schema.Schema{
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Optional:    true,
+				Description: "The names of the groups this user belongs to.",
 			},
 		},
 	}
 }
 
 func dataGetUserPolicies(data *schema.ResourceData) []string {
-	policies := data.Get(keyUserPolicies).([]interface{})
-	var policyStrings []string
-	for _, policyRaw := range policies {
-		policyStrings = append(policyStrings, policyRaw.(string))
+	return dataGetStringList(data, keyUserPolicies)
+}
+
+func dataGetUserGroups(data *schema.ResourceData) []string {
+	return dataGetStringList(data, keyUserGroups)
+}
+
+func stringSliceContains(slice []string, value string) bool {
+	for _, item := range slice {
+		if value == item {
+			return true
+		}
 	}
-	return policyStrings
+	return false
+}
+
+// Compare two string slices.
+// Returns the removed and the added values as two separate slices.
+func stringSliceDiff(old []string, _new []string) ([]string, []string) {
+	var added []string
+	var removed []string
+
+	for _, oldValue := range old {
+		if !stringSliceContains(_new, oldValue) {
+			removed = append(removed, oldValue)
+		}
+	}
+	for _, newValue := range _new {
+		if !stringSliceContains(old, newValue) {
+			added = append(added, newValue)
+		}
+	}
+
+	return added, removed
+}
+
+func stringSliceRemove(slice []string, value string) []string {
+	var newSlice []string
+
+	for _, oldValue := range slice {
+		if oldValue != value {
+			newSlice = append(newSlice, oldValue)
+		}
+	}
+
+	return newSlice
+}
+
+// Check if all the specified groups exist on a Minio server.
+// Returns an error if any of the groups do not exist, or nil otherwise.
+func verifyGroupsExist(ctx context.Context, client *madmin.AdminClient, groups []string) error {
+	existingGroups, err := client.ListGroups(ctx)
+	var missing []string
+	if err != nil {
+		return err
+	}
+	for _, group := range groups {
+		if !stringSliceContains(existingGroups, group) {
+			missing = append(missing, group)
+		}
+	}
+
+	if len(missing) == 0 {
+		return nil
+	}
+	return fmt.Errorf("Group(s) do not exist: %s", strings.Join(missing, ", "))
 }
 
 func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
@@ -73,6 +143,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 	accessKey := d.Get(keyAccessKey).(string)
 	secretKey := d.Get(keySecretKey).(string)
 	policies := dataGetUserPolicies(d)
+	groups := dataGetUserGroups(d)
 
 	log.Printf("[DEBUG] Creating minio user: '%s'\n", accessKey)
 	if err := client.AddUser(ctx, accessKey, secretKey); err != nil {
@@ -93,6 +164,36 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 			})
 			d.Set(keyUserPolicies, nil)
 		}
+	}
+	if len(groups) > 0 {
+		if err := verifyGroupsExist(ctx, client, groups); err != nil {
+			return []diag.Diagnostic{diag.Diagnostic{
+				Severity:      diag.Error,
+				Summary:       err.Error(),
+				AttributePath: cty.GetAttrPath(keyUserGroups),
+			}}
+		}
+
+		var actuallyAddedGroups []string
+
+		for _, group := range groups {
+			err := client.UpdateGroupMembers(ctx, madmin.GroupAddRemove{
+				Group:    group,
+				Members:  []string{accessKey},
+				IsRemove: false,
+			})
+
+			if err != nil {
+				diags = append(diags, diag.Diagnostic{
+					Severity:      diag.Warning,
+					Summary:       "Could not add user to group " + group + ": " + err.Error(),
+					AttributePath: cty.GetAttrPath(keyUserGroups),
+				})
+			} else {
+				actuallyAddedGroups = append(actuallyAddedGroups, group)
+			}
+		}
+		d.Set(keyUserGroups, actuallyAddedGroups)
 	}
 
 	d.SetId(accessKey)
@@ -120,13 +221,16 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}
 
 	policies := strings.Split(user.PolicyName, ",")
 	d.Set(keyUserPolicies, policies)
+	d.Set(keyUserGroups, user.MemberOf)
+
+	// TODO: how to handle this? API seems to not return the key.
 	// d.Set(KEY_SECRET_KEY, user.SecretKey)
 
 	return diags
 }
 
 func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
-	if d.HasChange(keyBucketName) {
+	if d.HasChange(keyAccessKey) {
 		return diag.FromErr(errors.New("Users can not be renamed"))
 	}
 
@@ -149,6 +253,55 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 		// TODO: implement enabled/disabled?
 		if err := client.SetUser(ctx, accessKey, newSecretKey, madmin.AccountEnabled); err != nil {
 			return diag.Errorf("Could nto change secret key: %s", err)
+		}
+	}
+
+	if d.HasChange(keyUserGroups) {
+		oldRaw, newRaw := d.GetChange(keyUserGroups)
+		old := interfaceToStringSlice(oldRaw.([]interface{}))
+		_new := interfaceToStringSlice(newRaw.([]interface{}))
+		added, removed := stringSliceDiff(old, _new)
+
+		if err := verifyGroupsExist(ctx, client, added); err != nil {
+			return []diag.Diagnostic{diag.Diagnostic{
+				Severity:      diag.Error,
+				AttributePath: cty.GetAttrPath(keyUserGroups),
+				Summary:       "Invalid group(s): " + err.Error(),
+			}}
+		}
+
+		for _, newGroup := range added {
+			err := client.UpdateGroupMembers(ctx, madmin.GroupAddRemove{
+				Group:    newGroup,
+				Members:  []string{accessKey},
+				IsRemove: false,
+			})
+			if err != nil {
+				d.Set(keyUserGroups, old)
+				return []diag.Diagnostic{diag.Diagnostic{
+					Severity:      diag.Error,
+					AttributePath: cty.GetAttrPath(keyUserGroups),
+					Summary:       "Could not add user to group " + newGroup + ": " + err.Error(),
+				}}
+			}
+			old = append(old, newGroup)
+		}
+
+		for _, removedGroup := range removed {
+			err := client.UpdateGroupMembers(ctx, madmin.GroupAddRemove{
+				Group:    removedGroup,
+				Members:  []string{accessKey},
+				IsRemove: true,
+			})
+			if err != nil {
+				d.Set(keyUserGroups, old)
+				return []diag.Diagnostic{diag.Diagnostic{
+					Severity:      diag.Error,
+					AttributePath: cty.GetAttrPath(keyUserGroups),
+					Summary:       "Could not remove user from group " + removedGroup + ": " + err.Error(),
+				}}
+			}
+			old = stringSliceRemove(old, removedGroup)
 		}
 	}
 

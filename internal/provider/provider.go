@@ -32,7 +32,7 @@ func init() {
 	// }
 }
 
-// Provider -
+// NewMinioProvider creates a new provider schema.
 func NewMinioProvider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
@@ -64,6 +64,7 @@ func NewMinioProvider() *schema.Provider {
 			"minio_bucket":        resourceBucket(),
 			"minio_user":          resourceUser(),
 			"minio_canned_policy": resourceCannedPolicy(),
+			"minio_group":         resourceGroup(),
 		},
 		DataSourcesMap: map[string]*schema.Resource{},
 	}
@@ -105,4 +106,17 @@ func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}
 	}
 
 	return mctx, diags
+}
+
+func interfaceToStringSlice(rawList []interface{}) []string {
+	var list []string
+	for _, rawValue := range rawList {
+		list = append(list, rawValue.(string))
+	}
+	return list
+}
+
+func dataGetStringList(data *schema.ResourceData, key string) []string {
+	rawList := data.Get(key).([]interface{})
+	return interfaceToStringSlice(rawList)
 }
