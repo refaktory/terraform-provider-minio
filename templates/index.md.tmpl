@@ -1,0 +1,28 @@
+---
+layout: ""
+page_title: "Provider: Minio"
+description: |-
+  Provider for the Minio object storage. Allows managing buckets, policies, groups and users.
+---
+
+# Minio Provider
+
+This provider allows managing [Minio](https://min.io) servers.
+
+Minio is an open-source Amazon S3 compatible object storage solution.
+
+The provider supports managing:
+* Buckets
+* Policies
+* Groups
+* Users
+
+This provider is open-source and can be found on Github: https://github.com/foundational-solutions/terraform-provider-minio
+
+Please report any issues or feature requests there.
+
+## Example Usage
+
+{{tffile "examples/provider/provider.tf"}}
+
+{{ .SchemaMarkdown | trimspace }}

@@ -32,6 +32,7 @@ self-hosted object storage server that is compatible with S3.
 - [x] Canned policy
 - [x] Group
 - [x] User
+- [ ] Serviceaccount
 
 ## Local Development
 
@@ -44,7 +45,7 @@ Add this configuration into `$HOME/.terraformrc`:
 ```
 provider_installation {
   dev_overrides {
-    "foundational/minio" = "/PATH/TO/LOCAL/REPO/bin"
+    "foundational-solutions/minio" = "/PATH/TO/LOCAL/REPO/bin"
   }
 
   direct {}
@@ -57,7 +58,8 @@ Build the provider with `make build`
 
 ### Test manually
 
-* Start a local minio instance
+* Start a local minio instance in a separate terminal 
+  (and keep it running)
   `docker-compose up`
 
 * Use the provider
