@@ -1,6 +1,6 @@
 # terraform-provider-minio
 
-A [Terraform](https://terraform.io) provider for [Minio](https://minio.io), a 
+A [Terraform](https://terraform.io) provider for [Minio](https://min.io), a 
 self-hosted object storage server that is compatible with S3.
 
 ## Features
