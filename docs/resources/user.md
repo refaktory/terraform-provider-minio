@@ -22,7 +22,8 @@ description: |-
 
 ### Optional
 
+- **groups** (List of String) The names of the groups this user belongs to.
 - **id** (String) The ID of this resource.
-- **policies** (List of String) The name of the canned policy valid for this user.
+- **policies** (List of String) The names of the canned policies valid for this user.
 
 
