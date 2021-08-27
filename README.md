@@ -3,6 +3,9 @@
 A [Terraform](https://terraform.io) provider for [Minio](https://min.io), a 
 self-hosted object storage server that is compatible with S3.
 
+
+Published at [Terraform Registry - foundational-solutions/minio](https://registry.terraform.io/providers/foundational-solutions/minio/latest/docs).
+
 ## Features
 
 ### Resources
@@ -33,6 +36,15 @@ self-hosted object storage server that is compatible with S3.
 - [x] Group
 - [x] User
 - [ ] Serviceaccount
+
+
+## Usage
+
+Consult the 
+[published documenation](https://registry.terraform.io/providers/foundational-solutions/minio/latest/docs) 
+on the registry for usage documenation. 
+
+Additional examples are available in the `./examples` directory.
 
 ## Local Development
 
