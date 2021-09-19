@@ -27,7 +27,7 @@ func main() {
 	}
 
 	if debugMode {
-		err := plugin.Debug(context.Background(), "registry.terraform.io/foundational/minio", opts)
+		err := plugin.Debug(context.Background(), "registry.terraform.io/refaktory/minio", opts)
 		if err != nil {
 			log.Fatal(err.Error())
 		}

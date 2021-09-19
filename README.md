@@ -4,7 +4,7 @@ A [Terraform](https://terraform.io) provider for [Minio](https://min.io), a
 self-hosted object storage server that is compatible with S3.
 
 
-Check out the documenation on the [Terraform Registry - foundational-solutions/minio](https://registry.terraform.io/providers/foundational-solutions/minio/latest/docs) for more information and usage examples.
+Check out the documenation on the [Terraform Registry - refaktory/minio](https://registry.terraform.io/providers/refaktory/minio/latest/docs) for more information and usage examples.
 
 ## Features
 
@@ -41,7 +41,7 @@ Check out the documenation on the [Terraform Registry - foundational-solutions/m
 ## Usage
 
 Consult the 
-[published documenation](https://registry.terraform.io/providers/foundational-solutions/minio/latest/docs) 
+[published documenation](https://registry.terraform.io/providers/refaktory/minio/latest/docs) 
 on the registry for usage documenation. 
 
 Additional examples are available in the `./examples` directory.
@@ -58,7 +58,7 @@ Add this configuration into `$HOME/.terraformrc`:
 ```
 provider_installation {
   dev_overrides {
-    "foundational-dev/minio" = "/PATH/TO/LOCAL/REPO/bin"
+    "refaktory-dev/minio" = "/PATH/TO/LOCAL/REPO/bin"
   }
 
   direct {}
@@ -78,6 +78,20 @@ Build the provider with `make build`
 * Use the provider
   `cd ./examples && terraform apply`
 
+### Deploy
+
+Steps to deploy:
+
+* `make prepare-release`
+* `git tag v0.X.0`
+* `git push`
+
+Actual publishing is handled by the Github action defined in 
+`./.github/workflows/release.yml`.
+
+The module is managed on the Terraform registry at 
+https://registry.terraform.io/publish/provider.
+
 ## About
 
-Developed by [foundational](https://foundational.cc).
+Developed by [refaktory](https://refaktory.net).
