@@ -77,13 +77,19 @@ func resourceBucketCreate(ctx context.Context, d *schema.ResourceData, m interfa
 func resourceBucketRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
 	// Warning or errors can be collected in a slice type
 	var diags diag.Diagnostics
+	var name string
 
-	name := d.Get(keyBucketName).(string)
+	if d.Id() == "" {
+		name = d.Get(keyBucketName).(string)
+		d.SetId(name)
+	} else {
+		name = d.Id()
+		if err := d.Set(keyBucketName, name); err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
 	client := m.(*minioContext).api
-
-    if d.Id() == "" {
-        d.SetId(name)
-    }
 
 	// Ensure that bucket exists.
 	flag, err := client.BucketExists(ctx, name)
@@ -93,9 +99,9 @@ func resourceBucketRead(ctx context.Context, d *schema.ResourceData, m interface
 	if !flag {
 		return diag.FromErr(errors.New("Bucket " + name + " does not exist"))
 	}
-    if err := d.Set(keyBucketName, name); err != nil {
-        return diag.FromErr(err)
-    }
+	if err := d.Set(keyBucketName, name); err != nil {
+		return diag.FromErr(err)
+	}
 
 	// Check versioning.
 	versionConfig, err := client.GetBucketVersioning(ctx, name)
@@ -103,9 +109,9 @@ func resourceBucketRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 	versioningEnabled := versionConfig.Enabled()
-    if err := d.Set(keyBucketVersioningEnabled, versioningEnabled); err != nil {
-        return diag.FromErr(err)
-    }
+	if err := d.Set(keyBucketVersioningEnabled, versioningEnabled); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return diags
 }
