@@ -31,6 +31,7 @@ func schemaBucket() objectSchema {
 			Default:     false,
 			Description: "Enables versioning. Note: this is only available if the Minio server is run with erasure codes enabled. See https://docs.min.io/docs/minio-erasure-code-quickstart-guide",
 		},
+		keyBucketLifecycleRule: schemaBucketLifecycle(),
 	}
 }
 
@@ -68,6 +69,11 @@ func resourceBucketCreate(ctx context.Context, d *schema.ResourceData, m interfa
 				AttributePath: cty.GetAttrPath(keyBucketVersioningEnabled),
 			})
 		}
+	}
+
+	diags = append(diags, resourceBucketLifecycleUpdate(ctx, name, d, m)...)
+	if diags.HasError() {
+		return diags
 	}
 
 	d.SetId(name)
@@ -113,6 +119,11 @@ func resourceBucketRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
+	diags = append(diags, resourceBucketLifecycleRead(ctx, name, d, m)...)
+	if diags.HasError() {
+		return diags
+	}
+
 	return diags
 }
 
@@ -143,6 +154,13 @@ func resourceBucketUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 					AttributePath: cty.GetAttrPath(keyBucketVersioningEnabled),
 				}}
 			}
+		}
+	}
+
+	if d.HasChange(keyBucketLifecycleRule) {
+		diags := resourceBucketLifecycleUpdate(ctx, name, d, m)
+		if diags.HasError() {
+			return diags
 		}
 	}
 
