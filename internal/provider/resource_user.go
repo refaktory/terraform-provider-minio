@@ -26,19 +26,19 @@ const (
 
 func schemaUser() objectSchema {
 	return map[string]*schema.Schema{
-		keyAccessKey: &schema.Schema{
+		keyAccessKey: {
 			Type:        schema.TypeString,
 			Required:    true,
 			Description: "The access key for the user. This is also the unique ID.",
 			ForceNew:    true,
 		},
-		keySecretKey: &schema.Schema{
+		keySecretKey: {
 			Type:        schema.TypeString,
 			Required:    true,
 			Description: "The secret key for the user.",
 			Sensitive:   true,
 		},
-		keyUserPolicies: &schema.Schema{
+		keyUserPolicies: {
 			Type: schema.TypeList,
 			Elem: &schema.Schema{
 				Type: schema.TypeString,
@@ -46,7 +46,7 @@ func schemaUser() objectSchema {
 			Optional:    true,
 			Description: "The names of the canned policies valid for this user.",
 		},
-		keyUserGroups: &schema.Schema{
+		keyUserGroups: {
 			Type: schema.TypeList,
 			Elem: &schema.Schema{
 				Type: schema.TypeString,
@@ -176,14 +176,14 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 				Summary:       "Could not set policy for user: " + err.Error(),
 				AttributePath: cty.GetAttrPath(keyUserPolicies),
 			})
-            if err := d.Set(keyUserPolicies, nil); err != nil {
-                return diag.FromErr(err)
-            }
+			if err := d.Set(keyUserPolicies, nil); err != nil {
+				return diag.FromErr(err)
+			}
 		}
 	}
 	if len(groups) > 0 {
 		if err := verifyGroupsExist(ctx, client, groups); err != nil {
-			return []diag.Diagnostic{diag.Diagnostic{
+			return []diag.Diagnostic{{
 				Severity:      diag.Error,
 				Summary:       err.Error(),
 				AttributePath: cty.GetAttrPath(keyUserGroups),
@@ -209,9 +209,9 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, m interface
 				actuallyAddedGroups = append(actuallyAddedGroups, group)
 			}
 		}
-        if err := d.Set(keyUserGroups, actuallyAddedGroups); err != nil {
-            return diag.FromErr(err)
-        }
+		if err := d.Set(keyUserGroups, actuallyAddedGroups); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	d.SetId(accessKey)
@@ -225,9 +225,9 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}
 	accessKey := d.Get(keyAccessKey).(string)
 	client := m.(*minioContext).admin
 
-    if d.Id() == "" {
-        d.SetId(accessKey)
-    }
+	if d.Id() == "" {
+		d.SetId(accessKey)
+	}
 
 	users, err := client.ListUsers(ctx)
 	if err != nil {
@@ -239,17 +239,17 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, m interface{}
 		return diag.Errorf("User does not exist")
 	}
 
-    if err := d.Set(keyAccessKey, accessKey); err != nil {
-        return diag.FromErr(err)
-    }
+	if err := d.Set(keyAccessKey, accessKey); err != nil {
+		return diag.FromErr(err)
+	}
 
 	policies := strings.Split(user.PolicyName, ",")
-    if err := d.Set(keyUserPolicies, policies); err != nil {
-        return diag.FromErr(err)
-    }
-    if err := d.Set(keyUserGroups, user.MemberOf); err != nil {
-        return diag.FromErr(err)
-    }
+	if err := d.Set(keyUserPolicies, policies); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(keyUserGroups, user.MemberOf); err != nil {
+		return diag.FromErr(err)
+	}
 
 	// TODO: how to handle this? API seems to not return the key.
 	// d.Set(KEY_SECRET_KEY, user.SecretKey)
@@ -291,7 +291,7 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 		added, removed := stringSliceDiff(old, _new)
 
 		if err := verifyGroupsExist(ctx, client, added); err != nil {
-			return []diag.Diagnostic{diag.Diagnostic{
+			return []diag.Diagnostic{{
 				Severity:      diag.Error,
 				AttributePath: cty.GetAttrPath(keyUserGroups),
 				Summary:       "Invalid group(s): " + err.Error(),
@@ -305,10 +305,10 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 				IsRemove: false,
 			})
 			if err != nil {
-                if err := d.Set(keyUserGroups, old); err != nil {
-                    return diag.FromErr(err)
-                }
-				return []diag.Diagnostic{diag.Diagnostic{
+				if err := d.Set(keyUserGroups, old); err != nil {
+					return diag.FromErr(err)
+				}
+				return []diag.Diagnostic{{
 					Severity:      diag.Error,
 					AttributePath: cty.GetAttrPath(keyUserGroups),
 					Summary:       "Could not add user to group " + newGroup + ": " + err.Error(),
@@ -324,10 +324,10 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, m interface
 				IsRemove: true,
 			})
 			if err != nil {
-                if err := d.Set(keyUserGroups, old); err != nil {
-                    return diag.FromErr(err)
-                }
-				return []diag.Diagnostic{diag.Diagnostic{
+				if err := d.Set(keyUserGroups, old); err != nil {
+					return diag.FromErr(err)
+				}
+				return []diag.Diagnostic{{
 					Severity:      diag.Error,
 					AttributePath: cty.GetAttrPath(keyUserGroups),
 					Summary:       "Could not remove user from group " + removedGroup + ": " + err.Error(),

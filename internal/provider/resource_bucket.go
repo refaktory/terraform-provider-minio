@@ -19,13 +19,13 @@ const (
 
 func schemaBucket() objectSchema {
 	return map[string]*schema.Schema{
-		keyBucketName: &schema.Schema{
+		keyBucketName: {
 			Type:        schema.TypeString,
 			Required:    true,
 			Description: "The name of the bucket. Can not be changed without recreating.",
 			ForceNew:    true,
 		},
-		keyBucketVersioningEnabled: &schema.Schema{
+		keyBucketVersioningEnabled: {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Default:     false,
@@ -129,7 +129,7 @@ func resourceBucketUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		enabled := d.Get(keyBucketVersioningEnabled).(bool)
 		if enabled {
 			if err := client.EnableVersioning(ctx, name); err != nil {
-				return []diag.Diagnostic{diag.Diagnostic{
+				return []diag.Diagnostic{{
 					Severity:      diag.Warning,
 					Summary:       "Could not enable versioning: " + err.Error(),
 					AttributePath: cty.GetAttrPath(keyBucketVersioningEnabled),
@@ -137,7 +137,7 @@ func resourceBucketUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 			}
 		} else {
 			if err := client.SuspendVersioning(ctx, name); err != nil {
-				return []diag.Diagnostic{diag.Diagnostic{
+				return []diag.Diagnostic{{
 					Severity:      diag.Warning,
 					Summary:       "Could not disable versioning: " + err.Error(),
 					AttributePath: cty.GetAttrPath(keyBucketVersioningEnabled),

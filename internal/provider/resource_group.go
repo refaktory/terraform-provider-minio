@@ -23,13 +23,13 @@ const (
 
 func schemaGroup() objectSchema {
 	return map[string]*schema.Schema{
-		keyGroupName: &schema.Schema{
+		keyGroupName: {
 			Type:        schema.TypeString,
 			Required:    true,
 			Description: "The name for the group.",
 			ForceNew:    true,
 		},
-		keyGroupPolicies: &schema.Schema{
+		keyGroupPolicies: {
 			Type: schema.TypeList,
 			Elem: &schema.Schema{
 				Type: schema.TypeString,
@@ -56,7 +56,7 @@ func resourceGroup() *schema.Resource {
 func datasourceGroup() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: resourceGroupRead,
-		Schema: schemaGroup(),
+		Schema:      schemaGroup(),
 	}
 }
 
@@ -113,11 +113,10 @@ func resourceGroupRead(ctx context.Context, d *schema.ResourceData, m interface{
 	var diags diag.Diagnostics
 
 	groupName := d.Get(keyGroupName).(string)
-    if d.Id() == "" {
-        d.SetId(groupName)
-    }
+	if d.Id() == "" {
+		d.SetId(groupName)
+	}
 	client := m.(*minioContext).admin
-
 
 	info, err := client.GetGroupDescription(ctx, groupName)
 	if err != nil {
@@ -154,7 +153,7 @@ func resourceGroupUpdate(ctx context.Context, d *schema.ResourceData, m interfac
 		newPolicies := dataGetGroupPolicies(d)
 		// FIXME: handle removing old policies!
 		if len(newPolicies) == 0 {
-			return []diag.Diagnostic{diag.Diagnostic{
+			return []diag.Diagnostic{{
 				Severity:      diag.Error,
 				Summary:       "Can not set policies to empty after the group has been assigned other policies. This is a minio API limitation.",
 				AttributePath: cty.GetAttrPath(keyGroupPolicies),

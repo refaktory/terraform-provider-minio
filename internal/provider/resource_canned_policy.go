@@ -17,13 +17,13 @@ const (
 
 func schemaCannedPolicy() objectSchema {
 	return map[string]*schema.Schema{
-		keyPolicyName: &schema.Schema{
+		keyPolicyName: {
 			Type:        schema.TypeString,
 			Required:    true,
 			Description: "The name for this policy. This is also the unique ID.",
 			ForceNew:    true,
 		},
-		keyPolicyPolicy: &schema.Schema{
+		keyPolicyPolicy: {
 			Type:        schema.TypeString,
 			Required:    true,
 			Description: "The policy definition as a map - will be encoded as JSON. See https://docs.min.io/docs/minio-multi-user-quickstart-guide.html for an example.",
@@ -84,9 +84,9 @@ func resourceCannedPolicyRead(ctx context.Context, d *schema.ResourceData, m int
 	name := d.Get(keyPolicyName).(string)
 	client := m.(*minioContext).admin
 
-    if d.Id() == "" {
-        d.SetId(name)
-    }
+	if d.Id() == "" {
+		d.SetId(name)
+	}
 
 	if err := d.Set(keyPolicyName, name); err != nil {
 		return diag.FromErr(err)
