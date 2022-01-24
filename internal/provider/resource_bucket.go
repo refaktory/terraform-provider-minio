@@ -19,18 +19,19 @@ const (
 
 func schemaBucket() objectSchema {
 	return map[string]*schema.Schema{
-		keyBucketName: &schema.Schema{
+		keyBucketName: {
 			Type:        schema.TypeString,
 			Required:    true,
 			Description: "The name of the bucket. Can not be changed without recreating.",
 			ForceNew:    true,
 		},
-		keyBucketVersioningEnabled: &schema.Schema{
+		keyBucketVersioningEnabled: {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Default:     false,
 			Description: "Enables versioning. Note: this is only available if the Minio server is run with erasure codes enabled. See https://docs.min.io/docs/minio-erasure-code-quickstart-guide",
 		},
+		keyBucketLifecycleRule: schemaBucketLifecycle(),
 	}
 }
 
@@ -68,6 +69,11 @@ func resourceBucketCreate(ctx context.Context, d *schema.ResourceData, m interfa
 				AttributePath: cty.GetAttrPath(keyBucketVersioningEnabled),
 			})
 		}
+	}
+
+	diags = append(diags, resourceBucketLifecycleUpdate(ctx, name, d, m)...)
+	if diags.HasError() {
+		return diags
 	}
 
 	d.SetId(name)
@@ -113,6 +119,11 @@ func resourceBucketRead(ctx context.Context, d *schema.ResourceData, m interface
 		return diag.FromErr(err)
 	}
 
+	diags = append(diags, resourceBucketLifecycleRead(ctx, name, d, m)...)
+	if diags.HasError() {
+		return diags
+	}
+
 	return diags
 }
 
@@ -129,7 +140,7 @@ func resourceBucketUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 		enabled := d.Get(keyBucketVersioningEnabled).(bool)
 		if enabled {
 			if err := client.EnableVersioning(ctx, name); err != nil {
-				return []diag.Diagnostic{diag.Diagnostic{
+				return []diag.Diagnostic{{
 					Severity:      diag.Warning,
 					Summary:       "Could not enable versioning: " + err.Error(),
 					AttributePath: cty.GetAttrPath(keyBucketVersioningEnabled),
@@ -137,12 +148,19 @@ func resourceBucketUpdate(ctx context.Context, d *schema.ResourceData, m interfa
 			}
 		} else {
 			if err := client.SuspendVersioning(ctx, name); err != nil {
-				return []diag.Diagnostic{diag.Diagnostic{
+				return []diag.Diagnostic{{
 					Severity:      diag.Warning,
 					Summary:       "Could not disable versioning: " + err.Error(),
 					AttributePath: cty.GetAttrPath(keyBucketVersioningEnabled),
 				}}
 			}
+		}
+	}
+
+	if d.HasChange(keyBucketLifecycleRule) {
+		diags := resourceBucketLifecycleUpdate(ctx, name, d, m)
+		if diags.HasError() {
+			return diags
 		}
 	}
 

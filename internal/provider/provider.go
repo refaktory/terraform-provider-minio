@@ -38,23 +38,23 @@ type objectSchema = map[string]*schema.Schema
 func NewMinioProvider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"endpoint": &schema.Schema{
+			"endpoint": {
 				Type:        schema.TypeString,
 				Description: "The Minio server domain.\nMust not include http[s]://!\nEg: my-minio.domain.com",
 				Required:    true,
 			},
-			"ssl": &schema.Schema{
+			"ssl": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "If true, https:// will be used.",
 			},
-			keyAccessKey: &schema.Schema{
+			keyAccessKey: {
 				Type:        schema.TypeString,
 				Sensitive:   true,
 				Required:    true,
 				Description: "The access key (username).\nShould be the minio root user or a user with sufficient permissions.",
 			},
-			keySecretKey: &schema.Schema{
+			keySecretKey: {
 				Type:        schema.TypeString,
 				Sensitive:   true,
 				Required:    true,
@@ -68,12 +68,12 @@ func NewMinioProvider() *schema.Provider {
 			"minio_canned_policy": resourceCannedPolicy(),
 			"minio_group":         resourceGroup(),
 		},
-        DataSourcesMap: map[string]*schema.Resource{
-            "minio_bucket": datasourceBucket(),
-            "minio_user": datasourceUser(),
-            "minio_canned_policy": datasourceCannedPolicy(),
+		DataSourcesMap: map[string]*schema.Resource{
+			"minio_bucket":        datasourceBucket(),
+			"minio_user":          datasourceUser(),
+			"minio_canned_policy": datasourceCannedPolicy(),
 			"minio_group":         datasourceGroup(),
-        },
+		},
 	}
 }
 

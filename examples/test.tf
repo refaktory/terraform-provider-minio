@@ -23,11 +23,17 @@ provider "minio" {
 # Create a bucket.
 resource "minio_bucket" "bucket" {
   name = "bucket"
+
+  lifecycle_rule {
+    expiration {
+      days = 2
+    }
+  }
 }
 
 # Create a policy.
 resource "minio_canned_policy" "policy1" {
-  name = "policy1"
+  name   = "policy1"
   policy = <<EOT
 {
   "Version": "2012-10-17",
@@ -48,7 +54,7 @@ EOT
 
 # Create a user group and assign the specified policies.
 resource "minio_group" "group1" {
-  name = "group1"
+  name     = "group1"
   policies = [minio_canned_policy.policy1.name]
 }
 
